@@ -1,32 +1,32 @@
 # Whisper Server Dockerfile (CPU-only)
-FROM ubuntu:22.04
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
-    ffmpeg \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
+FROM ubuntu:22.04 AS build
 WORKDIR /app
 
-# Copy whisper.cpp submodule
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y build-essential wget cmake git libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Copy whisper.cpp source
 COPY backend/whisper-cpp/ .
 
-# Build with CPU optimization
-RUN cmake -B build -DGGML_BLAS=1
-RUN cmake --build build -j$(nproc) --config Release
+# Build with OpenBLAS optimization and download large-v3 model
+RUN make large-v3 CMAKE_ARGS="-DGGML_BLAS=1"
 
-# Create models directory
-RUN mkdir -p models
+# Runtime stage
+FROM ubuntu:22.04 AS runtime
+WORKDIR /app
 
-# Download base model (faster for CPU)
-RUN bash ./models/download-ggml-model.sh base.en
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y curl ffmpeg libsdl2-dev wget cmake git libopenblas0 \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Copy built application and models from build stage
+COPY --from=build /app /app
+
+# Add binaries to PATH
+ENV PATH=/app/build/bin:$PATH
 
 # Expose the port
 EXPOSE 8081
@@ -35,5 +35,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
 
-# Start the server
-CMD ["./build/bin/whisper-server", "-m", "models/ggml-base.en.bin", "--convert", "--host", "0.0.0.0", "--port", "8081"]
+# Start the server with large-v3 model
+CMD ["whisper-server", "-m", "models/ggml-large-v3.bin", "--convert", "--host", "0.0.0.0", "--port", "8081"]

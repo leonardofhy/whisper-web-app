@@ -18,8 +18,14 @@ This guide explains how to deploy the Whisper Web App using Docker.
 git clone https://github.com/leonardofhy/whisper-web-app.git
 cd whisper-web-app
 
-# Start all services
-docker-compose up -d
+# Download the large-v3 model first
+docker-compose --profile download-model up model-downloader
+
+# Start GPU mode (recommended - uses official prebuilt image)
+docker-compose --profile gpu-official up -d whisper-server-official web-frontend
+
+# OR start CPU mode (uses official prebuilt image)
+docker-compose --profile cpu-official up -d whisper-server-cpu-official web-frontend
 
 # Check status
 docker-compose ps
@@ -34,38 +40,53 @@ Access the application at:
 
 ## Configuration Options
 
-### GPU vs CPU
+### Deployment Options
 
-**GPU (Default - Recommended)**
-```yaml
-# Uses NVIDIA GPU for faster transcription
-services:
-  whisper-server:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+**GPU (Recommended - Official Image)**
+```bash
+# Uses official prebuilt CUDA-enabled image
+docker-compose --profile gpu-official up -d
 ```
 
-**CPU Only**
+**GPU (Custom Build)**
 ```bash
-# Remove GPU configuration and start
-docker-compose up -d whisper-server-cpu web-frontend
+# Uses custom Dockerfile with CUDA 12.0
+docker-compose --profile gpu up -d
+```
+
+**CPU Only (Official Image)**
+```bash
+# Uses official prebuilt CPU-only image
+docker-compose --profile cpu-official up -d
+```
+
+**CPU Only (Custom Build)**
+```bash
+# Uses custom Dockerfile with OpenBLAS optimization
+docker-compose --profile cpu up -d
 ```
 
 ### Model Selection
 
-Edit `Dockerfile.whisper` to change the model:
+The configuration now defaults to `large-v3` model which supports Chinese and other languages. To change the model:
 
-```dockerfile
-# For better accuracy (larger model)
-RUN bash ./models/download-ggml-model.sh large-v3
+1. **Using Official Images**: Edit the command in `docker-compose.yml`:
+```yaml
+command: [
+  "whisper-server",
+  "-m", "/models/ggml-base.en.bin",  # Change this line
+  "--convert",
+  "--host", "0.0.0.0",
+  "--port", "8081"
+]
+```
 
-# For Chinese optimization
-RUN bash ./models/download-ggml-model.sh large-v3
+2. **Using Custom Build**: Edit the Dockerfiles to change `make large-v3` to `make base.en` or other models.
+
+3. **Download Different Models**: Modify the model-downloader service:
+```bash
+# Download base model instead
+docker run --rm -v whisper-web-app_whisper-models:/models ghcr.io/ggml-org/whisper.cpp:main bash -c "cd /models && wget -O ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"
 ```
 
 ### Environment Variables
@@ -157,13 +178,22 @@ docker run -v $(pwd)/custom-models:/app/models \
 **GPU not detected**
 ```bash
 # Check NVIDIA Docker runtime
-docker run --rm --gpus all nvidia/cuda:12.4-runtime-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.0-runtime-ubuntu22.04 nvidia-smi
+
+# Test official whisper.cpp GPU image
+docker run --rm --gpus all ghcr.io/ggml-org/whisper.cpp:main-cuda nvidia-smi
 ```
 
 **Out of memory**
 ```bash
-# Use smaller model
-RUN bash ./models/download-ggml-model.sh base.en
+# Use smaller model (edit docker-compose.yml command)
+command: [
+  "whisper-server",
+  "-m", "/models/ggml-base.en.bin",
+  "--convert",
+  "--host", "0.0.0.0",
+  "--port", "8081"
+]
 ```
 
 **CORS errors**
@@ -211,19 +241,27 @@ services:
 ## Commands Reference
 
 ```bash
-# Build and start
-docker-compose up --build -d
+# Download model first
+docker-compose --profile download-model up model-downloader
+
+# Start GPU mode (official image - recommended)
+docker-compose --profile gpu-official up -d
+
+# Start CPU mode (official image)
+docker-compose --profile cpu-official up -d
+
+# Build and start custom images
+docker-compose --profile gpu up --build -d
 
 # Stop all services
 docker-compose down
 
-# Update to latest
-git pull
-docker-compose build --no-cache
-docker-compose up -d
+# Update official images
+docker-compose pull
+docker-compose --profile gpu-official up -d
 
 # View logs
-docker-compose logs -f whisper-server
+docker-compose logs -f whisper-server-official
 docker-compose logs -f web-frontend
 
 # Clean up
@@ -231,7 +269,10 @@ docker-compose down -v --remove-orphans
 docker system prune -f
 
 # Backup models
-docker cp whisper-server:/app/models ./backup-models/
+docker run --rm -v whisper-web-app_whisper-models:/source -v $(pwd):/backup alpine tar czf /backup/models-backup.tar.gz -C /source .
+
+# Restore models
+docker run --rm -v whisper-web-app_whisper-models:/target -v $(pwd):/backup alpine tar xzf /backup/models-backup.tar.gz -C /target
 ```
 
 ## Security

@@ -1,32 +1,56 @@
-# Whisper Server Dockerfile
-FROM nvidia/cuda:12.2-devel-ubuntu22.04
+# Whisper Server Dockerfile (GPU)
+ARG UBUNTU_VERSION=22.04
+ARG CUDA_VERSION=12.4.1
+ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
+ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
-    ffmpeg \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
+FROM ${BASE_CUDA_DEV_CONTAINER} AS build
 WORKDIR /app
 
-# Copy whisper.cpp submodule
+# Unless otherwise specified, we make a fat build
+ARG CUDA_DOCKER_ARCH=all
+ENV CUDA_DOCKER_ARCH=${CUDA_DOCKER_ARCH}
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y build-essential libsdl2-dev wget cmake git curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Set CUDA environment
+ENV CUDA_MAIN_VERSION=12.4
+ENV LD_LIBRARY_PATH /usr/local/cuda-${CUDA_MAIN_VERSION}/compat:$LD_LIBRARY_PATH
+
+# Copy whisper.cpp source
 COPY backend/whisper-cpp/ .
 
-# Build with CUDA support (fallback to CPU if no GPU)
-RUN cmake -B build -DGGML_CUDA=1 || cmake -B build
-RUN cmake --build build -j$(nproc) --config Release
+# Build with CUDA support and download large-v3 model for Chinese
+RUN make large-v3 CMAKE_ARGS="-DGGML_CUDA=1 -DCMAKE_CUDA_ARCHITECTURES='75;80;86;90'"
 
-# Create models directory
-RUN mkdir -p models
+# Clean up build artifacts to reduce image size
+RUN find /app/build -name "*.o" -delete && \
+    find /app/build -name "*.a" -delete && \
+    rm -rf /app/build/CMakeFiles && \
+    rm -rf /app/build/cmake_install.cmake && \
+    rm -rf /app/build/_deps
 
-# Download base model (you can change this to large-v3 for production)
-RUN bash ./models/download-ggml-model.sh base.en
+# Runtime stage
+FROM ${BASE_CUDA_RUN_CONTAINER} AS runtime
+ENV CUDA_MAIN_VERSION=12.4
+ENV LD_LIBRARY_PATH /usr/local/cuda-${CUDA_MAIN_VERSION}/compat:$LD_LIBRARY_PATH
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y curl ffmpeg wget cmake git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Copy built application and models from build stage
+COPY --from=build /app /app
+
+# Add binaries to PATH
+ENV PATH=/app/build/bin:$PATH
 
 # Expose the port
 EXPOSE 8081
@@ -35,5 +59,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
 
-# Start the server
-CMD ["./build/bin/whisper-server", "-m", "models/ggml-base.en.bin", "--convert", "--host", "0.0.0.0", "--port", "8081"]
+# Start the server with large-v3 model
+CMD ["whisper-server", "-m", "models/ggml-large-v3.bin", "--convert", "--host", "0.0.0.0", "--port", "8081"]

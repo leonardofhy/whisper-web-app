@@ -22,77 +22,143 @@ whisper-web-app/
 └── docs/                 # Documentation
 ```
 
-## Quick Start
+## Quick Start with Docker
 
 ### Prerequisites
 
-- [whisper.cpp](https://github.com/ggml-org/whisper.cpp) server running
-- Node.js 18+ (for backend)
-- Modern web browser
+- Docker 24.0+ with Docker Compose
+- NVIDIA Docker runtime (for GPU acceleration)
+- At least 6GB free disk space (for large-v3 model)
+- 8GB+ RAM recommended
 
-### Installation
+### Simple Deployment
 
-1. Clone the repository with submodules:
 ```bash
+# Clone the repository
 git clone --recursive https://github.com/leonardofhy/whisper-web-app.git
 cd whisper-web-app
+
+# Download the large-v3 model (supports Chinese and multilingual)
+docker-compose --profile download-model up model-downloader
+
+# Start GPU mode (recommended - uses official prebuilt image)
+docker-compose --profile gpu-official up -d whisper-server-official web-frontend
+
+# OR start CPU mode (uses official prebuilt image)
+docker-compose --profile cpu-official up -d whisper-server-cpu-official web-frontend
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f whisper-server-official
 ```
 
-2. **Option A: Docker (Recommended)**
-```bash
-# Build and start all services
-docker-compose --profile cpu up --build -d
+Access the application at:
+- **Web Interface**: http://localhost:3000
+- **API**: http://localhost:8081
+- **Health Check**: http://localhost:8081/health
 
-# Or for GPU support
-docker-compose --profile gpu up --build -d
+### Manual Setup (Development)
 
-# Access the app at http://localhost:3000
-```
-
-3. **Option B: Manual Setup**
 ```bash
 # Build whisper server
 cd backend/whisper-cpp
-cmake -B build
-cmake --build build -j --config Release
-
-# Download model
-bash ./models/download-ggml-model.sh base.en
+make large-v3
 
 # Start server
-./build/bin/whisper-server -m models/ggml-base.en.bin --convert --port 8081
+./build/bin/whisper-server -m models/ggml-large-v3.bin --convert --host 0.0.0.0 --port 8081
 
 # In another terminal, start frontend
 cd ../../frontend
 python3 -m http.server 3000
 ```
 
-4. Open http://localhost:3000
-
 ## API Usage
 
 The app provides a simple REST API:
 
 ```bash
+# Basic transcription
 curl http://localhost:8081/inference \
   -F file="@audio.mp3" \
   -F response_format="json" \
   -F language="zh"
+
+# With additional parameters
+curl http://localhost:8081/inference \
+  -F file="@audio.wav" \
+  -F response_format="verbose_json" \
+  -F language="auto" \
+  -F temperature="0.2"
+
+# Health check
+curl http://localhost:8081/health
 ```
 
-## Deployment
+## Advanced Configuration
 
-### Docker (Recommended)
+### Deployment Options
+
+1. **Official Images (Recommended)**
+   - `--profile gpu-official`: Uses `ghcr.io/ggml-org/whisper.cpp:main-cuda`
+   - `--profile cpu-official`: Uses `ghcr.io/ggml-org/whisper.cpp:main`
+   - Pre-built, optimized, and regularly updated
+
+2. **Custom Build**
+   - `--profile gpu`: Builds from local whisper.cpp submodule with CUDA
+   - `--profile cpu`: Builds from local whisper.cpp submodule with OpenBLAS
+   - Useful for development or custom modifications
+
+### Model Selection
+
+The default model is `large-v3` for best multilingual support including Chinese. To change:
 
 ```bash
-docker-compose up -d
+# Download different models
+docker run --rm -v whisper-web-app_whisper-models:/models ghcr.io/ggml-org/whisper.cpp:main bash -c \
+  "cd /models && wget -O ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"
+
+# Then edit docker-compose.yml to use the new model:
+# Change "-m", "/models/ggml-large-v3.bin" to "-m", "/models/ggml-base.en.bin"
 ```
 
-### Manual Deployment
+### Production Deployment
 
-1. Deploy whisper server on GPU-enabled machine
-2. Deploy web app on static hosting (Vercel, Netlify)
-3. Configure CORS and API endpoints
+```bash
+# With reverse proxy and production optimizations
+docker-compose --profile gpu-official --profile production up -d
+```
+
+For detailed deployment instructions, see [docs/DOCKER.md](docs/DOCKER.md)
+
+## Development
+
+### Backend Development
+
+```bash
+# Build and test whisper.cpp locally
+cd backend/whisper-cpp
+make clean
+make large-v3
+
+# Test with sample audio
+./build/bin/whisper-cli -f samples/jfk.wav -m models/ggml-large-v3.bin
+
+# Test server mode
+./build/bin/whisper-server -m models/ggml-large-v3.bin --host 127.0.0.1 --port 8081
+```
+
+### Frontend Development
+
+```bash
+# Start development server
+cd frontend
+python3 -m http.server 3000
+
+# Edit files in frontend/ directory
+# Changes are reflected immediately
+```
 
 ## Contributing
 
