@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Web Transcription</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎤 Whisper Web Transcription</h1>
+            <p>Upload audio files and get AI-powered transcription in 100+ languages</p>
+        </header>
+        
+        <main>
+            <div class="upload-section">
+                <div class="language-select">
+                    <label for="language">Language:</label>
+                    <select id="language">
+                        <option value="auto">Auto-detect</option>
+                        <option value="en">English</option>
+                        <option value="zh">Chinese (中文)</option>
+                        <option value="es">Spanish (Español)</option>
+                        <option value="fr">French (Français)</option>
+                        <option value="de">German (Deutsch)</option>
+                        <option value="ja">Japanese (日本語)</option>
+                        <option value="ko">Korean (한국어)</option>
+                        <option value="ru">Russian (Русский)</option>
+                        <option value="ar">Arabic (العربية)</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="pt">Portuguese (Português)</option>
+                        <option value="it">Italian (Italiano)</option>
+                    </select>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p>Drag and drop audio files here or click to browse</p>
+                    <p class="file-types">Supports: MP3, WAV, M4A, OGG, FLAC and more</p>
+                    <button class="upload-btn" onclick="document.getElementById('audioFile').click()">
+                        Choose Audio File
+                    </button>
+                    <input type="file" id="audioFile" accept="audio/*" multiple>
+                </div>
+
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <div class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">Processing...</p>
+            </div>
+
+            <div class="result-section" id="resultSection" style="display: none;">
+                <h3>Transcription Result</h3>
+                <div class="result-toolbar">
+                    <button id="copyBtn" class="btn btn-secondary">📋 Copy</button>
+                    <button id="downloadBtn" class="btn btn-secondary">💾 Download</button>
+                </div>
+                <div class="transcription-result" id="transcriptionResult"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by <a href="https://github.com/ggml-org/whisper.cpp" target="_blank">whisper.cpp</a></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
