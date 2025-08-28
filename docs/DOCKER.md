@@ -35,8 +35,29 @@ docker-compose logs -f
 ```
 
 Access the application at:
-- **Web Interface**: http://localhost:3000
+- **Web Interface**: https://localhost:3443 (HTTPS) or http://localhost:3080 (HTTP)
 - **API**: http://localhost:8081
+
+## New Features
+
+### Audio Recording Download
+The web interface now supports downloading recorded audio files:
+1. Record audio using the "Record Audio" feature
+2. After recording, click the "💾 Download" button to save the audio file
+
+### Improved Transcription Quality
+Fixed transcription truncation issues by removing character length limitations:
+- Full transcription output for long audio files (5+ minutes)
+- No more truncation to 30 words for lengthy recordings
+- Better handling of continuous speech segments
+- Added `--max-len 0` parameter to all whisper server configurations
+
+### Enhanced GPU Backend
+Improved Docker GPU configuration with:
+- Proper CUDA 12.4 support in custom builds
+- Automatic backend failover between different server profiles
+- Optimized nginx upstream configuration for multiple backend services
+- Better error handling and timeout management
 
 ## Configuration Options
 
@@ -207,6 +228,18 @@ docker-compose ps reverse-proxy
 # Check resource usage
 docker exec whisper-server nvidia-smi  # GPU
 docker exec whisper-server top         # CPU
+```
+
+**Transcription cuts off/incomplete output**
+This issue has been resolved in the current version. If you're still experiencing truncation:
+```bash
+# Restart services to apply the --max-len 0 fix
+docker-compose down
+docker-compose --profile gpu-official up -d
+
+# Or rebuild custom images if needed
+docker-compose down
+docker-compose --profile gpu up --build -d
 ```
 
 ### Performance Tuning
