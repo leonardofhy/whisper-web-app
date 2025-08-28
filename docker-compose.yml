@@ -130,10 +130,14 @@ services:
       dockerfile: Dockerfile
     container_name: whisper-frontend
     ports:
-      - "3080:80"
+      - "3080:80"   # HTTP port
+      - "3443:443"  # HTTPS port
+    volumes:
+      - ./ssl:/etc/ssl/certs:ro
+      - ./ssl:/etc/ssl/private:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
+      test: ["CMD", "curl", "-f", "-k", "https://localhost/"]
       interval: 30s
       timeout: 5s
       retries: 3

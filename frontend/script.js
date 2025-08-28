@@ -352,7 +352,7 @@ function updateRecordingTimer() {
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
         document.getElementById('recordingTimer').textContent = 
-            `⏱️ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 }
 
@@ -360,10 +360,10 @@ function playRecording() {
     const audioElement = document.getElementById('recordedAudio');
     if (audioElement.paused) {
         audioElement.play();
-        document.getElementById('playRecord').textContent = '⏸️ Pause';
+        document.getElementById('playRecord').textContent = 'Pause';
     } else {
         audioElement.pause();
-        document.getElementById('playRecord').textContent = '▶️ Play';
+        document.getElementById('playRecord').textContent = 'Play';
     }
 }
 

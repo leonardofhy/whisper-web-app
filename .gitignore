@@ -33,6 +33,13 @@ tmp/
 temp/
 .cache/
 
+# SSL certificates and private keys
+*.key
+*.pem
+*.crt
+*.p12
+ssl/
+
 # Audio files (optional - comment out if you want to commit test files)
 *.mp3
 *.wav
