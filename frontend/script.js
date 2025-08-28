@@ -47,6 +47,7 @@ function setupEventListeners() {
     document.getElementById('startRecord').addEventListener('click', startRecording);
     document.getElementById('stopRecord').addEventListener('click', stopRecording);
     document.getElementById('playRecord').addEventListener('click', playRecording);
+    document.getElementById('downloadRecordBtn').addEventListener('click', downloadRecording);
     document.getElementById('useRecord').addEventListener('click', useRecording);
     document.getElementById('cancelRecord').addEventListener('click', cancelRecording);
 }
@@ -306,6 +307,7 @@ async function startRecording() {
             
             // Show control buttons
             document.getElementById('playRecord').style.display = 'inline-block';
+            document.getElementById('downloadRecordBtn').style.display = 'inline-block';
             document.getElementById('useRecord').style.display = 'inline-block';
             
             // Stop all tracks to free up the microphone
@@ -367,6 +369,23 @@ function playRecording() {
     }
 }
 
+function downloadRecording() {
+    if (recordedChunks.length === 0) {
+        showError('No recording available to download');
+        return;
+    }
+    
+    const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 function useRecording() {
     const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
     const file = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
@@ -396,6 +415,7 @@ function cancelRecording() {
     document.getElementById('startRecord').style.display = 'inline-block';
     document.getElementById('stopRecord').style.display = 'none';
     document.getElementById('playRecord').style.display = 'none';
+    document.getElementById('downloadRecordBtn').style.display = 'none';
     document.getElementById('useRecord').style.display = 'none';
     document.getElementById('recordingTimer').style.display = 'none';
     document.getElementById('recordedAudio').style.display = 'none';
