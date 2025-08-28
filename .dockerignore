@@ -1,0 +1,50 @@
+# Git (but keep submodules)
+.git
+.gitignore
+!backend/whisper-cpp
+
+# Documentation
+README.md
+docs/
+
+# Docker files
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Node modules (if using Node.js backend later)
+node_modules/
+npm-debug.log
+
+# Environment files
+.env*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Large audio files (optional)
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+
+# Models (will be downloaded in container)
+models/
+*.bin

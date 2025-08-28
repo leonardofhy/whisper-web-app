@@ -15,10 +15,11 @@ A modern web application for audio transcription using OpenAI Whisper, built wit
 
 ```
 whisper-web-app/
-├── frontend/           # Web interface (HTML/CSS/JavaScript)
-├── backend/            # API server (Node.js/Python)
-├── docker-compose.yml  # Container orchestration
-└── docs/              # Documentation
+├── frontend/              # Web interface (HTML/CSS/JavaScript)
+├── backend/
+│   └── whisper-cpp/      # Whisper.cpp submodule
+├── docker-compose.yml    # Container orchestration
+└── docs/                 # Documentation
 ```
 
 ## Quick Start
@@ -31,28 +32,39 @@ whisper-web-app/
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository with submodules:
 ```bash
-git clone https://github.com/leonardofhy/whisper-web-app.git
+git clone --recursive https://github.com/leonardofhy/whisper-web-app.git
 cd whisper-web-app
 ```
 
-2. Start whisper.cpp server:
+2. **Option A: Docker (Recommended)**
 ```bash
-# In whisper.cpp directory
-./build/bin/whisper-server -m models/ggml-large-v3.bin --convert --port 8081
+# Build and start all services
+docker-compose --profile cpu up --build -d
+
+# Or for GPU support
+docker-compose --profile gpu up --build -d
+
+# Access the app at http://localhost:3000
 ```
 
-3. Run the web application:
+3. **Option B: Manual Setup**
 ```bash
-# Development
-cd frontend
-python -m http.server 3000
+# Build whisper server
+cd backend/whisper-cpp
+cmake -B build
+cmake --build build -j --config Release
 
-# Or with Node.js backend
-cd backend
-npm install
-npm start
+# Download model
+bash ./models/download-ggml-model.sh base.en
+
+# Start server
+./build/bin/whisper-server -m models/ggml-base.en.bin --convert --port 8081
+
+# In another terminal, start frontend
+cd ../../frontend
+python3 -m http.server 3000
 ```
 
 4. Open http://localhost:3000
