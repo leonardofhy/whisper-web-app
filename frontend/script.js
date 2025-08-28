@@ -1,5 +1,5 @@
 // Configuration
-const API_BASE_URL = 'http://127.0.0.1:8081';
+const API_BASE_URL = '/api';
 const API_ENDPOINT = `${API_BASE_URL}/inference`;
 
 // DOM Elements
@@ -18,6 +18,10 @@ const downloadBtn = document.getElementById('downloadBtn');
 // Global variables
 let uploadedFiles = [];
 let currentTranscription = '';
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingTimer = null;
+let recordingStartTime = null;
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -38,8 +42,13 @@ function setupEventListeners() {
     copyBtn.addEventListener('click', copyToClipboard);
     downloadBtn.addEventListener('click', downloadTranscription);
     
-    // Click to upload
-    uploadArea.addEventListener('click', () => audioFile.click());
+    // Recording controls
+    document.getElementById('recordBtn').addEventListener('click', showRecordingSection);
+    document.getElementById('startRecord').addEventListener('click', startRecording);
+    document.getElementById('stopRecord').addEventListener('click', stopRecording);
+    document.getElementById('playRecord').addEventListener('click', playRecording);
+    document.getElementById('useRecord').addEventListener('click', useRecording);
+    document.getElementById('cancelRecord').addEventListener('click', cancelRecording);
 }
 
 function handleDragOver(e) {
@@ -261,4 +270,139 @@ function showError(message) {
     setTimeout(() => {
         document.body.removeChild(errorDiv);
     }, 5000);
+}
+
+// Recording functions
+function showRecordingSection() {
+    document.getElementById('recordingSection').style.display = 'block';
+    document.getElementById('fileList').style.display = 'none';
+}
+
+function hideRecordingSection() {
+    document.getElementById('recordingSection').style.display = 'none';
+    document.getElementById('fileList').style.display = 'block';
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            const audioElement = document.getElementById('recordedAudio');
+            audioElement.src = audioUrl;
+            audioElement.style.display = 'block';
+            
+            // Show control buttons
+            document.getElementById('playRecord').style.display = 'inline-block';
+            document.getElementById('useRecord').style.display = 'inline-block';
+            
+            // Stop all tracks to free up the microphone
+            stream.getTracks().forEach(track => track.stop());
+        };
+        
+        mediaRecorder.start();
+        recordingStartTime = Date.now();
+        
+        // Update UI
+        document.getElementById('startRecord').style.display = 'none';
+        document.getElementById('stopRecord').style.display = 'inline-block';
+        document.getElementById('recordingTimer').style.display = 'block';
+        
+        // Start timer
+        recordingTimer = setInterval(updateRecordingTimer, 1000);
+        
+    } catch (error) {
+        showError('Could not access microphone. Please allow microphone access and try again.');
+        console.error('Recording error:', error);
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+    
+    // Clear timer
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+    }
+    
+    // Update UI
+    document.getElementById('startRecord').style.display = 'inline-block';
+    document.getElementById('stopRecord').style.display = 'none';
+    document.getElementById('recordingTimer').style.display = 'none';
+}
+
+function updateRecordingTimer() {
+    if (recordingStartTime) {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('recordingTimer').textContent = 
+            `⏱️ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+function playRecording() {
+    const audioElement = document.getElementById('recordedAudio');
+    if (audioElement.paused) {
+        audioElement.play();
+        document.getElementById('playRecord').textContent = '⏸️ Pause';
+    } else {
+        audioElement.pause();
+        document.getElementById('playRecord').textContent = '▶️ Play';
+    }
+}
+
+function useRecording() {
+    const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+    const file = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+    
+    // Add to files list and start transcription
+    uploadedFiles = [file];
+    displayFileList([file]);
+    hideRecordingSection();
+    
+    // Auto-start transcription
+    transcribeFile(0);
+}
+
+function cancelRecording() {
+    // Stop recording if active
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+    
+    // Clear timer
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+    }
+    
+    // Reset UI
+    document.getElementById('startRecord').style.display = 'inline-block';
+    document.getElementById('stopRecord').style.display = 'none';
+    document.getElementById('playRecord').style.display = 'none';
+    document.getElementById('useRecord').style.display = 'none';
+    document.getElementById('recordingTimer').style.display = 'none';
+    document.getElementById('recordedAudio').style.display = 'none';
+    
+    // Clear recorded data
+    recordedChunks = [];
+    recordingStartTime = null;
+    
+    hideRecordingSection();
 }

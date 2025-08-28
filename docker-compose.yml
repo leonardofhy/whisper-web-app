@@ -130,7 +130,7 @@ services:
       dockerfile: Dockerfile
     container_name: whisper-frontend
     ports:
-      - "3000:80"
+      - "3080:80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]

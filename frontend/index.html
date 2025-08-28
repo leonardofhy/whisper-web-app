@@ -38,10 +38,27 @@
                     <div class="upload-icon">📁</div>
                     <p>Drag and drop audio files here or click to browse</p>
                     <p class="file-types">Supports: MP3, WAV, M4A, OGG, FLAC and more</p>
-                    <button class="upload-btn" onclick="document.getElementById('audioFile').click()">
-                        Choose Audio File
-                    </button>
+                    <div class="upload-buttons">
+                        <button class="upload-btn" onclick="document.getElementById('audioFile').click()">
+                            📁 Choose Audio File
+                        </button>
+                        <button class="record-btn" id="recordBtn">
+                            🎙️ Record Audio
+                        </button>
+                    </div>
                     <input type="file" id="audioFile" accept="audio/*" multiple>
+                </div>
+                
+                <div class="recording-section" id="recordingSection" style="display: none;">
+                    <div class="recording-controls">
+                        <button id="startRecord" class="btn btn-primary">🔴 Start Recording</button>
+                        <button id="stopRecord" class="btn btn-danger" style="display: none;">⏹️ Stop Recording</button>
+                        <button id="playRecord" class="btn btn-secondary" style="display: none;">▶️ Play</button>
+                        <button id="useRecord" class="btn btn-success" style="display: none;">✅ Use Recording</button>
+                        <button id="cancelRecord" class="btn btn-secondary">❌ Cancel</button>
+                    </div>
+                    <div class="recording-timer" id="recordingTimer" style="display: none;">⏱️ 00:00</div>
+                    <audio id="recordedAudio" controls style="display: none; width: 100%; margin-top: 10px;"></audio>
                 </div>
 
                 <div id="fileList" class="file-list"></div>
