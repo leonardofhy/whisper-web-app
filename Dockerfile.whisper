@@ -25,7 +25,8 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-${CUDA_MAIN_VERSION}/compat:$LD_LIBRARY_PATH
 COPY backend/whisper-cpp/ .
 
 # Build with CUDA support and download large-v3 model for Chinese
-RUN make large-v3 CMAKE_ARGS="-DGGML_CUDA=1 -DCMAKE_CUDA_ARCHITECTURES='75;80;86;90'"
+# Include GTX 1080 support (compute capability 6.1)
+RUN make large-v3 CMAKE_ARGS="-DGGML_CUDA=1 -DCMAKE_CUDA_ARCHITECTURES='61;75;80;86;90'"
 
 # Clean up build artifacts to reduce image size
 RUN find /app/build -name "*.o" -delete && \

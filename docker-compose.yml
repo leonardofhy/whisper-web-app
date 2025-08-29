@@ -1,5 +1,5 @@
 services:
-  # Whisper Server Backend (GPU version) - Official prebuilt image
+  # Whisper Server Backend (GPU version) - Official prebuilt image (for newer CUDA)
   whisper-server-official:
     image: ghcr.io/ggml-org/whisper.cpp:main-cuda
     container_name: whisper-server-official
@@ -27,7 +27,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8081/health && nvidia-smi > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -37,7 +37,7 @@ services:
     profiles:
       - gpu-official
 
-  # Whisper Server Backend (GPU version) - Custom build
+  # Whisper Server Backend (GPU version) - Custom build (RECOMMENDED for CUDA 12.4)
   whisper-server:
     build:
       context: .
@@ -59,7 +59,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8081/health && nvidia-smi > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,6 +67,7 @@ services:
     networks:
       - whisper-network
     profiles:
+      - default
       - gpu
 
   # Whisper Server Backend (CPU version) - Official prebuilt image
