@@ -100,7 +100,7 @@ function displayFileList(files) {
                 <div class="file-size">${formatFileSize(file.size)}</div>
             </div>
             <button class="btn btn-primary" onclick="transcribeFile(${index})">
-                🎤 Transcribe
+                Transcribe
             </button>
         `;
         fileList.appendChild(fileItem);
@@ -204,7 +204,7 @@ function hideResult() {
 function copyToClipboard() {
     navigator.clipboard.writeText(currentTranscription).then(() => {
         const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied!';
+        copyBtn.textContent = 'Copied!';
         setTimeout(() => {
             copyBtn.textContent = originalText;
         }, 2000);
@@ -219,7 +219,7 @@ function copyToClipboard() {
         document.body.removeChild(textArea);
         
         const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied!';
+        copyBtn.textContent = 'Copied!';
         setTimeout(() => {
             copyBtn.textContent = originalText;
         }, 2000);
@@ -242,10 +242,10 @@ async function checkServerHealth() {
     try {
         const response = await fetch(`${API_BASE_URL}/health`);
         if (response.ok) {
-            console.log('✅ Whisper server is running');
+            console.log('Whisper server is running');
         }
     } catch (error) {
-        console.warn('⚠️ Cannot connect to Whisper server:', error.message);
+        console.warn('Cannot connect to Whisper server:', error.message);
         showError(`Warning: Cannot connect to Whisper server at ${API_BASE_URL}`);
     }
 }
