@@ -46,3 +46,5 @@ ssl/
 *.m4a
 *.ogg
 *.flac
+
+.github/copilot-instructions.md
